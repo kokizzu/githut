@@ -4,8 +4,6 @@
  * @author Fabian Beuke <mail@beuke.org>
  * @license AGPL-3.0
  */
-import React from "react"
-
 export default function Footer() {
     return (
         <div id="footer">
@@ -13,8 +11,8 @@ export default function Footer() {
                 Credits to <a href="//github.com/littleark">Carlo Zapponi</a>
                 <br />
                 This work is licensed under the{" "}
-                <a
-                    rel="license"
+                <a // eslint-disable-line react/jsx-no-target-blank
+                    rel="noopener"
                     href="//www.gnu.org/licenses/agpl-3.0.en.html"
                     target="_blank"
                 >

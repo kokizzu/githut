@@ -7,29 +7,17 @@
   ],
   "plugins": [
     "standard",
-    "mocha",
-    "react",
-    "promise"
+    "react"
   ],
   "parser": "babel-eslint",
-  "ecmaFeatures": {
-    "jsx": true,
-    "modules": true
-  },
   "env": {
     "node": true,
-    "mocha": true
-  },
-  "settings": {
-    "import/ignore": [
-      ".styl$"
-    ]
   },
   "rules": {
-    "mocha/no-exclusive-tests": "error",
     "react/prop-types": [0 , {}],
-    "operator-linebreak": off,
+    "react/react-in-jsx-scope": "off",
     "no-duplicate-imports": off,
+    "import/no-duplicates" : off,
     "no-unused-vars": ['error', {
       argsIgnorePattern: '^_',
       varsIgnorePattern: '^_'

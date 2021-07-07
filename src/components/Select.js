@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 import ReactSelect from "react-select"
 import { range, toString } from "lodash/fp"
-import { getMaxDataDate } from "../utils.js"
-import "react-select/dist/react-select.css"
+import { getMaxDataDate } from "common/utils.js"
 
 export default function Select(props) {
     const year = props.year
@@ -18,13 +17,7 @@ export default function Select(props) {
     function setValue(value) {
         const [_, dispatch] = props.hist
 
-        if (year) {
-            // props.hist.data.year = value
-            dispatch({ type: 'setYear', payload: value });
-        } else {
-            dispatch({ type: 'setQuarter', payload: value });
-            // props.hist.data.quarter = value
-        }
+        dispatch({ type: year ? "setYear" : "setQuarter", payload: value })
         setState({ ...state, value: value })
     }
 
@@ -39,15 +32,14 @@ export default function Select(props) {
             })
         })
         const { params } = props.match
-        const value = year ? params.year : params.quarter
-        setValue(value)
+        setValue(year ? params.year : params.quarter)
     }, [])
 
     function histPush(x, y, z) {
         props.history.push("/" + x + "/" + y + "/" + z)
     }
 
-    function onChange(value) {
+    function onChange({ value }) {
         const { params } = props.match
         setValue(value)
         if (year) {
@@ -58,17 +50,20 @@ export default function Select(props) {
     }
 
     if (!state) return null
+    const styles = {
+        control: (provided) => ({ ...provided, height: 38 }),
+        valueContainer: (provided) => ({ ...provided, height: 38 }),
+    }
     return (
-        <div>
+        <div style={{ width: "200px", paddingRight: "20px" }}>
             <h4 className="section-heading">{year ? "Year" : "Quarter"}</h4>
             <ReactSelect
-                label="States"
+                styles={styles}
                 onChange={onChange}
                 options={state.options}
-                simpleValue
                 searchable={false}
                 clearable={false}
-                value={state.value}
+                value={{ value: state.value, label: state.value }}
             />
         </div>
     )

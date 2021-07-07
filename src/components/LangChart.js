@@ -10,26 +10,23 @@
  * @see {@link https://creativecommons.org/licenses/by-nc/3.0/}
  */
 
-import React, { useState, useEffect } from "react"
-import { update, range, sortBy, includes, uniqBy, reject } from "lodash/fp"
-import { size, max, flatten, map, take, zipWith, divide } from "lodash/fp"
-import { unzip, sum, filter, drop, isEqual, pipe } from "lodash/fp"
-import { LangChartStore } from "../stores/LangChartStore"
+import { useState, useEffect } from "react";
+import ChartConfig from "common/LangChartConfig"
 import Highcharts from "highcharts"
 import HighchartsReact from "highcharts-react-official"
 import GitHubColors from "github-colors"
+import _ from "lodash/fp"
 
 export default function LangChart(props) {
-    const store = new LangChartStore()
-    const [state, setState] = useState(store.getConfig())
+
+    const [state, setState] = useState(ChartConfig)
+    const [debounce] = useState(() => _.debounce(200)(setState))
     let dataLength = 0
-    let top50 = []
-    const style = {
-        width: "100%",
-        margin: "auto",
-        maxWidth: 1360,
-    }
     let visible
+    const style = {
+        margin: "auto",
+        maxWidth: "100%",
+    }
 
     /**
      * Creates Highcharts xAxis categories since 2012
@@ -37,11 +34,11 @@ export default function LangChart(props) {
      * @returns {Object} xAxis categories (year/quarter)
      */
     function categories() {
-        return pipe(
-            map((y) => range(1, 5) | map((q) => (q === 1 ? y : ""))),
-            flatten,
-            drop(1)
-        )(range(2012, 2050))
+        return _.pipe(
+            _.map((y) => _.map((q) => (q === 1 ? y : "")), _.range(1, 5)),
+            _.flatten,
+            _.drop(1)
+        )(_.range(2012, 2050))
     }
 
     /**
@@ -51,23 +48,22 @@ export default function LangChart(props) {
      * @returns {Object} Data series with percentage data
      */
     function percentageData(data) {
-        const total = pipe(map("data"), unzip, map(sum))(data)
-        const zipTotal = (x) => zipWith(divide, x)(total)
-        const zipData = pipe(update("data"))(zipTotal)
-        return map(zipData, data)
+        const total = _.pipe(_.map("data"), _.unzip, _.map(_.sum))(data)
+        const zipTotal = (x) => _.zipWith(_.divide, x)(total)
+        const zipData = _.pipe(_.update("data"))(zipTotal)
+        return _.map(zipData, data)
     }
 
     /**
      * Adds zeros if we dont have enough historical data. For example,
-     * there is no data for Typescript in 2012/Q2. We fill missing data
-     * with zeros.
+     * there is no data for Typescript in 2012/Q2.
      * @param {Object} current - GitHub api data set
      * @returns {Object} Data series filled with zeros if required
      */
     function fillZeros(data) {
-        const HistSize = pipe(map("data"), map(size), max)(data)
-        const fill = (d) => new Array(HistSize - size(d)).fill(0).concat(d)
-        return map(update("data", fill))(data)
+        const HistSize = _.pipe(_.map("data"), _.map(_.size), _.max)(data)
+        const fill = (d) => new Array(HistSize - _.size(d)).fill(0).concat(d)
+        return _.map(_.update("data", fill))(data)
     }
 
     /**
@@ -76,54 +72,50 @@ export default function LangChart(props) {
      * @param {Object} current - GitHub api data set
      * @returns {Object} Data series for top 10 languages
      */
-    function createSeries(data) {
-        return pipe(
-            uniqBy("name"),
-            reject((o) => !includes(o.name)(top50)),
-            map.convert({ cap: 0 })((d, i) => ({
+    const createSeries = (top) => (data) => {
+        return _.pipe(
+            _.uniqBy("name"),
+            _.reject((o) => !_.includes(o.name)(top)),
+            _.map.convert({ cap: 0 })((d, i) => ({
                 name: d.name,
                 color: GitHubColors.get(d.name)
                     ? GitHubColors.get(d.name).color // or random color
                     : "#" + Math.floor(Math.random() * 16777215).toString(16),
                 visible: visible ? visible.includes(d.name) : i < 7,
-                data: map("count")(filter({ name: d.name })(data)),
+                data: _.map("count")(_.filter({ name: d.name })(data)),
             })),
             fillZeros
         )(data)
     }
 
     /*
-     * Updates react state if the new state is different than the old state
+     * Updates react state if state has changed
      */
     function updateState(newState) {
-        if (!isEqual(state, newState)) {
-            setState(newState)
+        if (!_.isEqual(state, newState)) {
+            debounce(newState)
         }
     }
 
     /*
      * Creates a new percentage series of data
      */
-    function createSeriesPercentage(data) {
-        return pipe(
-            map(update("count")(Math.floor)),
-            createSeries,
+    function createSeriesPercentage(data, top) {
+        return _.pipe(
+            _.map(_.update("count")(Math.floor)),
+            createSeries(top),
             percentageData
         )(data)
     }
 
     /**
-     * Creates a new chart if necessary
+     * Creates a new chart if state has changed
      */
     function constructChart(data, title, top) {
-        if (
-            (data.length === dataLength || isEqual(top50, top)) &&
-            size(top) === 0
-        ) {
+        if (data.length === dataLength && _.size(top) === 0) {
             return
         }
 
-        top50 = top
         dataLength = data.length
         const newState = {
             ...state,
@@ -131,7 +123,7 @@ export default function LangChart(props) {
                 ...state.yAxis,
                 title: { text: title },
             },
-            series: createSeriesPercentage(data),
+            series: createSeriesPercentage(data, top),
             xAxis: { tickLength: 0, categories: categories() },
         }
         updateState(newState)
@@ -139,29 +131,29 @@ export default function LangChart(props) {
 
     /**
      * Native react function, called on component mount and
-     * on every prop change event via mobx autorun
-     * The autorun handler creates the chart with a composition
-     * of class member functions and change reacts state if something
-     * has changed
+     * on every prop change event
      */
     useEffect(() => {
-            const { lang } = props.match.params
-            visible = lang ? lang.split(",") : undefined
-            const [store, _] = props.store
-            const data = store.data
-            const title = store.name
-            const top = pipe(
-                take(50),
-                sortBy("name"),
-                map("name")
-            )(props.table[0].data)
-            constructChart(data, title, top)
+        const { lang } = props.match.params
+        visible = lang ? lang.split(",") : undefined
+        const [store] = props.store
+        const data = store.data
+        const title = store.name
+        const top = _.pipe(
+            _.take(50),
+            _.sortBy("name"),
+            _.map("name")
+        )(props.table[0].data)
+
+        constructChart(data, title, top)
     }, [props.hist, props.store, props.table])
 
     if (state && state.series && state.series.length === 0) return null
     return (
-        <div style={style}>
-            <HighchartsReact highcharts={Highcharts} options={state} />
-        </div>
+        <center>
+            <div style={style}>
+                <HighchartsReact highcharts={Highcharts} options={state} />
+            </div>
+        </center>
     )
 }

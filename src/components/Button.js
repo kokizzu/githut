@@ -4,7 +4,7 @@
  * @license AGPL-3.0
  */
 
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 import { Button as MaterialButton } from "react-materialize"
 
 export default function Button({ match, store, history }) {
@@ -37,7 +37,7 @@ export default function Button({ match, store, history }) {
             <center>
                 <MaterialButton
                     className={
-                        "waves-effect waves-light blue-grey lighten-2 btn"
+                        "waves-effect waves-light blue-grey darken-1 btn"
                     }
                     onClick={next}
                 >

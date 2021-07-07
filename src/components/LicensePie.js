@@ -9,11 +9,11 @@
  * @see {@link https://creativecommons.org/licenses/by-nc/3.0/}
  */
 
-import React, { useState, useEffect } from "react"
-import licenses from "../../data/github-licenses.json"
+import { useState, useEffect } from "react";
+import licenses from "data/github-licenses.json"
 import Highcharts from "highcharts"
 import HighchartsReact from "highcharts-react-official"
-import { mapKeys, update, take, map, pipe } from "lodash/fp"
+import _ from "lodash/fp"
 
 export default function LicensePie() {
     const config = {
@@ -38,13 +38,17 @@ export default function LicensePie() {
     const [state, setState] = useState(config)
 
     useEffect(() => {
-        const series = pipe(
-            map(mapKeys((k) => (k === "license" ? "name" : "y"))),
-            map(update("y")(Math.floor)),
-            take(5)
+        const series = _.pipe(
+            _.map(_.mapKeys((k) => (k === "license" ? "name" : "y"))),
+            _.map(_.update("y")(Math.floor)),
+            _.take(5)
         )(licenses)
         setState({ ...config, series: [{ data: series }] })
     }, [])
 
-    return <HighchartsReact highcharts={Highcharts} options={state} />
+    return (
+        <center>
+            <HighchartsReact highcharts={Highcharts} options={state} />
+        </center>
+    )
 }
